@@ -70,7 +70,10 @@ player = {
 
     # Runtime state
     "triggered_events": [],
-    "cutlass_oiled": False
+    "cutlass_oiled": False,
+    "jones_defeated": False,
+    "guardian_defeated": False,
+    "sovereign_defeated": False
 }
 
 
@@ -187,7 +190,7 @@ rooms = {
             "covered in drawings. A child drew this. No child should "
             "know this island exists."
         ),
-        "exits": {"west": "jungle_path"},
+        "exits": {"west": "jungle_path", "east": "jungle_path"},
         "items": ["spyglass", "compass_shard", "island_map"],
         "npc": None,
         "hidden": True,
@@ -206,7 +209,7 @@ rooms = {
             "in the way only the dead can be."
         ),
         "exits": {"east": "jungle_path", "north": "ghost_camp"},
-        "items": [],
+        "items": ["tide_lantern"],
         "npc": "ghost_sailor",
         "hidden": False,
         "combat_room": False,
@@ -314,7 +317,7 @@ rooms = {
             "stopped applying to it centuries ago."
         ),
         "exits": {"west": "sea_cave", "south": "six_crowned_shallows"},
-        "items": [],
+        "items": ["chest_key"],
         "npc": "deep_presence",
         "hidden": True,
         "combat_room": False,
@@ -461,8 +464,8 @@ rooms = {
             "horizon to horizon, and somewhere beyond it, the rest of "
             "the world. Still out there. Still happening without you."
         ),
-        "exits": {"south": "volcanic_ridge", "east": "clifftop"},
-        "items": [],
+        "exits": {"south": "volcanic_ridge"},
+        "items": ["sea_chart"],
         "npc": None,
         "hidden": False,
         "combat_room": False,
@@ -1981,6 +1984,13 @@ def unlock_condition_met(room_key):
             "island_map" in player["inventory"] or
             "tide_lantern" in player["inventory"]
         )
+    # Clifftop is the final area — only reachable via ruins (north)
+    # or lighthouse (east) but lighthouse east is blocked until jones defeated
+    if room_key == "clifftop":
+        return player.get("jones_defeated", False)
+    # Clifftop requires Jones to be defeated first
+    if room_key == "clifftop":
+        return player.get("jones_defeated", False)
     # These are marked hidden in the data but intentionally
     # have no access restriction — open by design
     return True
@@ -3357,7 +3367,10 @@ def restart_game():
         "game_over": False,
         "ending": None,
         "triggered_events": [],
-        "cutlass_oiled": False
+        "cutlass_oiled": False,
+        "jones_defeated": False,
+        "guardian_defeated": False,
+        "sovereign_defeated": False
     }
     rooms["wreck_of_ship"]["items"] = ["old_logbook", "boarding_axe", "locked_chest"]
     rooms["crows_perch"]["items"] = ["spyglass", "compass_shard", "island_map"]
@@ -3365,6 +3378,10 @@ def restart_game():
     rooms["shipwreck_hollow"]["items"] = ["captains_logbook"]
     rooms["sunken_crypt"]["items"] = ["jones_journal"]
     rooms["the_ruins"]["items"] = ["heart_of_the_locker"]
+    rooms["tidal_pool"]["items"] = ["chest_key"]
+    rooms["mangrove_maze"]["items"] = ["tide_lantern"]
+    rooms["ruined_lighthouse"]["items"] = ["sea_chart"]
+    rooms["tidal_pool"]["items"] = ["chest_key"]
     rooms["tidal_pool"]["npc"] = "deep_presence"
     rooms["tidal_pool"]["description"] = (
         "A natural pool, connected to the open sea through channels "
@@ -4205,6 +4222,7 @@ def combat_victory(npc_key):
         player["jones_confronted"] = True
         rooms["the_ruins"]["npc"] = None
         rooms["the_ruins"]["combat_room"] = False
+        player["jones_defeated"] = True
         # Check for final ending path
         if player["heart_destroyed"]:
             print("")
@@ -4215,8 +4233,12 @@ def combat_victory(npc_key):
             )
 
     elif npc_key == "sovereign":
+        player["sovereign_defeated"] = True
         trigger_ending()
         return
+
+    elif npc_key == "cave_guardian":
+        player["guardian_defeated"] = True
 
     player["in_combat"] = False
     player["combat_target"] = None
